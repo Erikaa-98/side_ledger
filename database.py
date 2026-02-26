@@ -1,17 +1,17 @@
 import sqlite3
 from datetime import datetime
 
-DB_PATH = "side_ledger.db"
+DB_FILE = "side_ledger.db"
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_connection()
     c = conn.cursor()
-
+    
     # 用户表
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
@@ -22,37 +22,32 @@ def init_db():
         created_at TEXT
     )
     """)
-
+    
     # 机构表
     c.execute("""
     CREATE TABLE IF NOT EXISTS institutions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         name TEXT,
-        contract_date TEXT,
+        status TEXT,
         follow_up_date TEXT,
         note TEXT,
-        status TEXT DEFAULT '已签约',
-        score INTEGER DEFAULT 0,
-        created_at TEXT,
-        updated_at TEXT,
-        user_id INTEGER
+        created_at TEXT
     )
     """)
-
+    
     # 收入表
     c.execute("""
     CREATE TABLE IF NOT EXISTS incomes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         institution_id INTEGER,
         amount REAL,
-        tax REAL,
-        income_type TEXT,
+        tax REAL DEFAULT 0,
         income_date TEXT,
-        created_at TEXT,
-        updated_at TEXT,
-        user_id INTEGER
+        created_at TEXT
     )
     """)
-
+    
     conn.commit()
     conn.close()
