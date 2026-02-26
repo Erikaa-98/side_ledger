@@ -4,6 +4,7 @@ from datetime import datetime
 import pandas as pd
 import hashlib
 import io
+import calendar
 
 st.set_page_config(page_title="副业账本 Pro", layout="wide")
 init_db()
@@ -180,7 +181,7 @@ else:
 
                 # 导出 Excel
                 output = io.BytesIO()
-                with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                with pd.ExcelWriter(output) as writer:  # 默认engine
                     df.to_excel(writer,index=False)
                 st.download_button(
                     "导出Excel",
@@ -193,5 +194,41 @@ else:
                 df["month"]=df["income_date"].str.slice(0,7)
                 monthly=df.groupby("month")["amount"].sum().reset_index()
                 st.line_chart(monthly.set_index("month"))
+
+        # ================= 月收入日历视图 =================
+        st.subheader("📅 本月收入日历")
+        today = datetime.now()
+        year = today.year
+        month = today.month
+
+        # 读取本月收入
+        df_month = pd.read_sql_query("""
+        SELECT income_date, amount
+        FROM incomes
+        WHERE user_id=? AND income_date LIKE ?
+        """, conn, params=(user_id, f"{year}-{month:02d}%"))
+
+        # 生成当月天数
+        _, num_days = calendar.monthrange(year, month)
+        data = {day: 0 for day in range(1, num_days + 1)}
+        for _, row in df_month.iterrows():
+            day = int(row["income_date"][-2:])
+            data[day] += row["amount"]
+
+        # 7列布局（日历）
+        cols = st.columns(7)
+        for day in range(1, num_days + 1):
+            col = cols[(day - 1) % 7]
+            income = data[day]
+            if income > 0:
+                col.markdown(
+                    f"<div style='background-color:#d4edda;padding:10px;border-radius:8px;text-align:center'><b>{day}</b><br>¥{income}</div>",
+                    unsafe_allow_html=True
+                )
+            else:
+                col.markdown(
+                    f"<div style='background-color:#f8f9fa;padding:10px;border-radius:8px;text-align:center'>{day}</div>",
+                    unsafe_allow_html=True
+                )
 
     conn.close()
