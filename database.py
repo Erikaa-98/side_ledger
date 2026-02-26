@@ -5,20 +5,24 @@ DB_PATH = "side_ledger.db"
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_connection()
     c = conn.cursor()
+
     # 用户表
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT UNIQUE,
         password TEXT,
+        monthly_target REAL DEFAULT 0,
         created_at TEXT
     )
     """)
+
     # 机构表
     c.execute("""
     CREATE TABLE IF NOT EXISTS institutions (
@@ -27,11 +31,14 @@ def init_db():
         contract_date TEXT,
         follow_up_date TEXT,
         note TEXT,
+        status TEXT DEFAULT '已签约',
+        score INTEGER DEFAULT 0,
         created_at TEXT,
-        user_id INTEGER,
-        FOREIGN KEY(user_id) REFERENCES users(id)
+        updated_at TEXT,
+        user_id INTEGER
     )
     """)
+
     # 收入表
     c.execute("""
     CREATE TABLE IF NOT EXISTS incomes (
@@ -42,10 +49,10 @@ def init_db():
         income_type TEXT,
         income_date TEXT,
         created_at TEXT,
-        user_id INTEGER,
-        FOREIGN KEY(institution_id) REFERENCES institutions(id),
-        FOREIGN KEY(user_id) REFERENCES users(id)
+        updated_at TEXT,
+        user_id INTEGER
     )
     """)
+
     conn.commit()
     conn.close()
